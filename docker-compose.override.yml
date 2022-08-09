@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+
+  jwtapp:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+    ports:
+      - "80"
+
+secrets:
+  tunnel-credentials.json:
+    file: .cloudflared/${TUNNEL_ID}.json

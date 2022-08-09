@@ -1,0 +1,47 @@
+version: '3.8'
+
+x-logging:
+  &default-logging
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  
+  jwtapp:
+    image: ${DOCKER_REGISTRY-}jwtapp    
+    environment:
+      Jwt__Issuer: ${JWT_ISS}
+      Jwt__Audience: ${JWT_AUD}
+    deploy:
+      mode: replicated
+      placement:
+        constraints: [ node.role == worker, node.platform.os == linux ]
+    logging: *default-logging
+
+  tunnel:
+    image: docker.io/cloudflare/cloudflared:2022.7.1
+    environment:
+      TUNNEL_URL: http://jwtapp
+      TUNNEL_TRANSPORT_PROTOCOL: ${TUNNEL_TRANSPORT_PROTOCOL-auto}
+      TUNNEL_CRED_FILE: /run/secrets/tunnel-credentials.json
+    secrets:
+      - tunnel-credentials.json
+    command:
+      - tunnel
+      - run
+      - ${TUNNEL_ID}
+    deploy:
+      mode: replicated
+      resources:
+        limits:
+          memory: 128M
+      placement:
+        constraints: [ node.role == manager, node.platform.os == linux ]
+    logging: *default-logging
+
+
+secrets:
+  tunnel-credentials.json:
+    external: true
+    name: jwt-app-${TUNNEL_ID}.json
